@@ -1,6 +1,6 @@
 package api.dtos
 
-data class TransactionDTO(
+data class Transaction(
     val from: String,
     val to: String,
     val amount: Float,
