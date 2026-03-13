@@ -1,6 +1,6 @@
-package api.entities.rules
+package api.entities.transaction.rules
 
-import api.entities.Transaction
+import api.entities.transaction.Transaction
 
 interface TransactionRule {
     fun isValid(transaction: Transaction): Boolean

@@ -1,4 +1,4 @@
-package api.entities
+package api.entities.transaction
 
 class Transaction(
     val from: String,

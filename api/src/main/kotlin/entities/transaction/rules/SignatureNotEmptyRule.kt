@@ -1,6 +1,6 @@
-package api.entities.rules
+package api.entities.transaction.rules
 
-import api.entities.Transaction
+import api.entities.transaction.Transaction
 
 class SignatureNotEmptyRule : TransactionRule {
     override fun isValid(transaction: Transaction): Boolean = transaction.signature.isNotEmpty()
