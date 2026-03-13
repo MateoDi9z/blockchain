@@ -5,9 +5,8 @@ class Transaction(
     val to: String,
     val amount: Float,
     val currency: String,
-    val signature: String
+    val signature: String,
 ) {
     fun isValid(): Boolean {
-
     }
 }

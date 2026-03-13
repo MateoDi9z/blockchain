@@ -3,7 +3,7 @@ package api.entities.rules
 import api.entities.Transaction
 
 class CompositeTransactionRule(
-    private val rules: List<TransactionRule>
+    private val rules: List<TransactionRule>,
 ) : TransactionRule {
 
     private val errors = mutableListOf<String>()
@@ -20,13 +20,12 @@ class CompositeTransactionRule(
         return errors.isEmpty()
     }
 
-    override fun getErrorMessage(): String {
-        return if (errors.isNotEmpty()) {
+    override fun getErrorMessage(): String =
+        if (errors.isNotEmpty()) {
             errors.joinToString(separator = " | ")
         } else {
             "No errors found"
         }
-    }
 
     fun getErrorList(): List<String> = errors.toList()
 }
