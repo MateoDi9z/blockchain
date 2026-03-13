@@ -7,6 +7,14 @@ allprojects {
     version = project.property('version')
 }
 
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = true
+}
+
 subprojects {
     apply plugin: 'buildlogic.kotlin-common-conventions'
 
