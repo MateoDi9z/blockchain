@@ -1,0 +1,112 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+    id 'org.jlleitschuh.gradle.ktlint'
+    id 'jacoco'
+    id 'maven-publish'
+    id 'org.jetbrains.kotlin.plugin.spring'
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+    id 'org.jetbrains.kotlin.plugin.jpa'
+}
+
+repositories {
+    mavenCentral()
+    gradlePluginPortal()
+
+}
+
+dependencies {
+    constraints {
+        implementation 'org.apache.commons:commons-text:1.13.0'
+    }
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    api 'org.apache.commons:commons-math3:3.6.1'
+
+    implementation 'com.google.guava:guava:29.0-jre'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
+    implementation 'org.jetbrains.kotlin:kotlin-reflect'
+    compileOnly 'org.projectlombok:lombok'
+    implementation 'org.postgresql:postgresql'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test-junit5'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.addAll '-Xjsr305=strict'
+    }
+}
+
+allOpen {
+    annotation 'jakarta.persistence.Entity'
+    annotation 'jakarta.persistence.MappedSuperclass'
+    annotation 'jakarta.persistence.Embeddable'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn("test")
+    violationRules {
+        rule {
+            limit {
+                minimum = "0.10".toBigDecimal() //TODO: Change to 0.80
+            }
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn("ktlintCheck")
+    dependsOn("jacocoTestCoverageVerification")
+}
+
+tasks.named("build") {
+    dependsOn("check")
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "PrintScriptPackages"
+            url = uri("https://maven.pkg.github.com/TEF-Austral/base-repo")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+    publications {
+        gpr(MavenPublication) {
+            from(components.java)
+            artifactId = project.name
+        }
+    }
+}
+
+
+
+
+
+

@@ -1,0 +1,24 @@
+plugins {
+    id 'buildlogic.kotlin-common-conventions'
+}
+
+allprojects {
+    group = project.property('group')
+    version = project.property('version')
+}
+
+subprojects {
+    apply plugin: 'buildlogic.kotlin-common-conventions'
+
+    repositories {
+        mavenCentral()
+    }
+
+    tasks.named('bootJar') {
+        enabled = false
+    }
+
+    tasks.named('jar') {
+        enabled = true
+    }
+}

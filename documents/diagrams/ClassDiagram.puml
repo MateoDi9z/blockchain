@@ -1,0 +1,54 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+class Transaction {
+  + String from
+  + String to
+  + float amount
+  + String sig
+  + boolean isValid()
+}
+
+class Block {
+  + int index
+  + long timestamp
+  + List<Transaction> transactions
+  + String previousHash
+  + String hash
+  + int nonce
+  + String calculateHash()
+  + void mineBlock(int difficulty)
+  + boolean hasValidTransactions()
+}
+
+class Blockchain {
+  + List<Block> chain
+  + int difficulty
+  + List<Transaction> pendingTransactions
+  + Block createGenesisBlock()
+  + Block getLatestBlock()
+  + void addBlock(Block newBlock)
+  + boolean isChainValid()
+  + boolean resolveConflicts(List<Block> peerChain)
+  + void createTransaction(Transaction transaction)
+  + void minePendingTransactions(String minerAddress)
+}
+
+class Node {
+  + String nodeId
+  + Blockchain blockchain
+  + List<String> peers
+  + void connectToPeer(String peerAddress)
+  + void broadcastBlock(Block block)
+  + void receiveBlock(Block block)
+  + void validateAndAddBlock(Block block)
+  + void broadcastTransaction(Transaction transaction)
+  + void syncChainWithPeers()
+}
+
+Blockchain "1" *-- "*" Block : contiene >
+Block "1" *-- "*" Transaction : incluye >
+Node "1" *-- "1" Blockchain : mantiene >
+Node "1" o-- "*" Node : se conecta con >
+
+@enduml
