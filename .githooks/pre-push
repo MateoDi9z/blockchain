@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
   # This script runs before every 'git push'
 
   echo "Running gradlew build..."

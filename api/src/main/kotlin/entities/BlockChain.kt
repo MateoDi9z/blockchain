@@ -1,6 +1,6 @@
 package api.entities
 
 class BlockChain(
-    chain: List<Block>,
-    difficulty: Int,
+    val chain: List<Block>,
+    val difficulty: Int,
 )

@@ -9,6 +9,7 @@ class TransactionValidator(
     private val errors = mutableListOf<String>()
 
     fun validate(transaction: Transaction): Boolean {
+        errors.clear()
         for (rule in rules) {
             if (!rule.isValid(transaction)) {
                 errors.add(rule.getErrorMessage())
