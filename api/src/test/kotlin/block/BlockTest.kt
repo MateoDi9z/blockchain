@@ -41,7 +41,7 @@ class BlockTest {
         assertEquals(
             manualHash,
             block.calculateHash(),
-            "El bloque debe usar la lógica de Hash.sha256",
+            "The block must use the Hash.sha256 logic",
         )
     }
 
@@ -53,7 +53,7 @@ class BlockTest {
         block.nonce = 1L
         val newHash = block.calculateHash()
 
-        assertNotEquals(originalHash, newHash, "Si cambias el nonce, el hash DEBE cambiar")
+        assertNotEquals(originalHash, newHash, "If you change the nonce, the hash MUST change")
     }
 
     @Test
@@ -64,15 +64,19 @@ class BlockTest {
         block.mineBlock(difficulty)
 
         val target = "0".repeat(difficulty)
-        assertTrue(block.hash.startsWith(target), "El hash minado debe empezar con $target")
-        assertTrue(block.nonce > 0, "El nonce tuvo que haber incrementado para encontrar el hash")
+        assertTrue(block.hash.startsWith(target), "The mined hash must start with $target")
+        assertTrue(block.nonce > 0, "The nonce must have been incremented to find the hash")
     }
 
     @Test
     fun genesisBlock_structure() {
         val genesis = Block(0, System.currentTimeMillis(), emptyList(), "0")
 
-        assertEquals(0, genesis.index, "El bloque génesis suele tener índice 0")
-        assertEquals("0", genesis.previousHash, "El bloque inicial no tiene hash anterior real")
+        assertEquals(0, genesis.index, "The genesis block usually has index 0")
+        assertEquals(
+            "0",
+            genesis.previousHash,
+            "The initial block does not have a real previous hash",
+        )
     }
 }
