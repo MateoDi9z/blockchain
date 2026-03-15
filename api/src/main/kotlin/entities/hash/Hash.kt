@@ -1,4 +1,4 @@
-package api.entities.crypto.hash
+package api.entities.hash
 
 import java.security.MessageDigest
 

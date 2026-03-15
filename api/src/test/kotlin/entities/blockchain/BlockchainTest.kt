@@ -1,26 +1,26 @@
 package entities.blockchain
 
-import entities.Blockchain
+import api.entities.blockchain.results.TransactionAdditionResult
 import api.entities.transaction.rules.PositiveAmountRule
+import entities.Blockchain
 import entities.block.Block
 import entities.transaction.validator.TransactionValidator
+import testutils.TestBuilders
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlin.test.assertFalse
-import testutils.TestBuilders
+import kotlin.test.assertTrue
 
 class BlockchainTest {
 
     private val testDifficulty = 2
-
     private val simpleValidator = TransactionValidator(listOf(PositiveAmountRule()))
 
     @Test
     fun init_createsGenesisBlock() {
         val blockchain = Blockchain(difficulty = testDifficulty, validator = simpleValidator)
 
-        assertEquals(1, blockchain.chain.size, "La cadena debe iniciar con 1 bloque")
+        assertEquals(1, blockchain.chain.size, "Chain should start with 1 block")
 
         val genesisBlock = blockchain.chain.first()
         assertEquals(0, genesisBlock.index)
@@ -34,51 +34,49 @@ class BlockchainTest {
 
         val result = blockchain.addTransaction(validTx)
 
-        assertTrue(result)
+        assertTrue(result is TransactionAdditionResult.Success)
         assertEquals(1, blockchain.pendingTransactions.size)
         assertEquals(validTx, blockchain.pendingTransactions.first())
     }
 
     @Test
-    fun addTransaction_rejectsInvalidTransaction() {
+    fun addTransaction_rejectsInvalidTransactionWithErrors() {
         val blockchain = Blockchain(difficulty = testDifficulty, validator = simpleValidator)
         val invalidTx = TestBuilders.makeTransaction(amount = -5L)
 
         val result = blockchain.addTransaction(invalidTx)
 
-        assertFalse(result)
+        assertTrue(result is TransactionAdditionResult.Rejected)
         assertTrue(
             blockchain.pendingTransactions.isEmpty(),
-            "No debe agregar la transacción a la lista",
+            "Pending transactions list should remain empty",
         )
     }
 
     @Test
-    fun minePendingTransactions_createsNewBlockAndClearsPending() {
+    fun minePendingTransactions_returnsMinedBlockAndClearsPending() {
         val blockchain = Blockchain(difficulty = testDifficulty, validator = simpleValidator)
 
         blockchain.addTransaction(TestBuilders.makeTransaction(from = "A", to = "B", amount = 10L))
         blockchain.addTransaction(TestBuilders.makeTransaction(from = "C", to = "D", amount = 5L))
 
-        blockchain.minePendingTransactions()
+        val minedBlock = blockchain.minePendingTransactions()
 
-        assertEquals(2, blockchain.chain.size, "Debería haber 2 bloques (Génesis + Nuevo)")
+        assertEquals(2, blockchain.chain.size, "Chain should have 2 blocks (Genesis + New)")
         assertTrue(
             blockchain.pendingTransactions.isEmpty(),
-            "Las transacciones pendientes deben vaciarse",
+            "Pending transactions must be cleared after mining",
         )
 
         val latestBlock = blockchain.getLatestBlock()
+        assertEquals(latestBlock, minedBlock)
         assertEquals(1, latestBlock.index)
         assertEquals(
             2,
             latestBlock.transactions.size,
-            "El bloque debe contener las 2 transacciones",
+            "Block must contain the 2 mined transactions",
         )
-        assertTrue(
-            latestBlock.hash.startsWith("00"),
-            "El hash debe cumplir con la dificultad de 2 ceros",
-        )
+        assertTrue(latestBlock.hash.startsWith("00"), "Hash must meet the difficulty of 2 zeros")
     }
 
     @Test
@@ -91,7 +89,7 @@ class BlockchainTest {
 
         assertTrue(
             blockchain.isChainValid(blockchain.chain),
-            "Una cadena minada legalmente debe ser válida",
+            "A legally mined chain should be considered valid",
         )
     }
 
@@ -109,14 +107,14 @@ class BlockchainTest {
                 timestamp = originalBlock.timestamp,
                 transactions = originalBlock.transactions,
                 previousHash = originalBlock.previousHash,
-                hash = "hash_falso_inventado",
+                hash = "fake_invented_hash",
                 nonce = originalBlock.nonce,
             )
         tamperedChain[1] = tamperedBlock
 
         assertFalse(
             blockchain.isChainValid(tamperedChain),
-            "La cadena debe ser rechazada porque el hash fue manipulado",
+            "Chain should be rejected due to tampered hash",
         )
     }
 
@@ -132,14 +130,14 @@ class BlockchainTest {
             TestBuilders.makeMinedBlock(
                 difficulty = testDifficulty,
                 index = originalBlock.index,
-                previousHash = "enlace_roto",
+                previousHash = "broken_link",
             )
 
         tamperedChain[1] = unlinkedBlock
 
         assertFalse(
             blockchain.isChainValid(tamperedChain),
-            "La cadena debe ser rechazada porque los bloques no están encadenados correctamente",
+            "Chain should be rejected due to broken previous hash links",
         )
     }
 
@@ -151,9 +149,10 @@ class BlockchainTest {
         nodeB.addTransaction(TestBuilders.makeTransaction(amount = 100L))
         nodeB.minePendingTransactions()
 
-        nodeA.replaceChain(nodeB.chain)
+        val result = nodeA.replaceChain(nodeB.chain)
 
-        assertEquals(2, nodeA.chain.size, "El Nodo A debería haber adoptado la cadena del Nodo B")
+        assertTrue(result is ChainSyncResult.Success)
+        assertEquals(2, nodeA.chain.size, "Node A should have adopted Node B's chain")
         assertEquals(nodeB.getLatestBlock().hash, nodeA.getLatestBlock().hash)
     }
 
@@ -167,12 +166,13 @@ class BlockchainTest {
 
         nodeB.minePendingTransactions()
 
-        nodeA.replaceChain(nodeB.chain)
+        val result = nodeA.replaceChain(nodeB.chain)
 
+        assertTrue(result is ChainSyncResult.Rejected)
         assertEquals(
-            3,
-            nodeA.chain.size,
-            "El Nodo A debe conservar su cadena de 3 bloques (Génesis + 2)",
+            "Received chain is shorter or equal to the local chain.",
+            (result as ChainSyncResult.Rejected).reason,
         )
+        assertEquals(3, nodeA.chain.size, "Node A should keep its chain of 3 blocks")
     }
 }

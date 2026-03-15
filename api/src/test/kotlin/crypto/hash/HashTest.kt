@@ -1,6 +1,6 @@
 package org.example.crypto.hash
 
-import api.entities.crypto.hash.Hash
+import api.entities.hash.Hash
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test

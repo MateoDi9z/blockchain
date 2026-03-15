@@ -1,7 +1,7 @@
 package entities.block
 
 import api.dtos.Transaction
-import api.entities.crypto.hash.Hash
+import api.entities.hash.Hash
 
 class Block(
     val index: Int,

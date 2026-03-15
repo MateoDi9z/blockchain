@@ -1,10 +1,12 @@
 package entities
 
 import api.dtos.Transaction
+import api.entities.blockchain.results.TransactionAdditionResult
 import api.entities.transaction.rules.PositiveAmountRule
 import api.entities.transaction.rules.SignatureNotEmptyRule
 import api.entities.transaction.rules.ValidCryptographicSignatureRule
 import entities.block.Block
+import entities.blockchain.ChainSyncResult
 import entities.transaction.validator.TransactionValidator
 
 class Blockchain(
@@ -40,20 +42,20 @@ class Blockchain(
             nonce = 0,
         )
 
-    fun addTransaction(transaction: Transaction): Boolean {
+    fun addTransaction(transaction: Transaction): TransactionAdditionResult {
         val result = validator.validate(transaction)
 
-        if (result.isValid) {
+        return if (result.isValid) {
             _pendingTransactions.add(transaction)
-            return true
+            TransactionAdditionResult.Success
+        } else {
+            TransactionAdditionResult.Rejected(result.getErrors())
         }
-
-        return false
     }
 
     fun getLatestBlock(): Block = _chain.last()
 
-    fun minePendingTransactions() {
+    fun minePendingTransactions(): Block {
         val unminedBlock =
             Block(
                 index = getLatestBlock().index + 1,
@@ -67,7 +69,7 @@ class Blockchain(
         _chain.add(minedBlock)
         _pendingTransactions.clear()
 
-        println("Block Mined and added: ${minedBlock.hash}")
+        return minedBlock
     }
 
     fun isChainValid(chainToValidate: List<Block>): Boolean {
@@ -86,13 +88,21 @@ class Blockchain(
         return true
     }
 
-    fun replaceChain(newChain: List<Block>) {
-        if (newChain.size > _chain.size && isChainValid(newChain)) {
-            println("Reemplazando la cadena local por una más larga de la red.")
-            _chain.clear()
-            _chain.addAll(newChain)
-        } else {
-            println("La cadena recibida es inválida o más corta. Se rechaza.")
+    fun replaceChain(newChain: List<Block>): ChainSyncResult {
+        if (newChain.size <= _chain.size) {
+            return ChainSyncResult.Rejected(
+                "Received chain is shorter or equal to the local chain.",
+            )
         }
+
+        if (!isChainValid(newChain)) {
+            return ChainSyncResult.Rejected(
+                "Received chain contains invalid blocks or broken links.",
+            )
+        }
+
+        _chain.clear()
+        _chain.addAll(newChain)
+        return ChainSyncResult.Success
     }
 }
