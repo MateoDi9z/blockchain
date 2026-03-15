@@ -1,4 +1,5 @@
 package entities.transaction.rules
+
 import api.entities.createSignature
 import api.entities.getPublicKeyFromString
 import api.entities.verifySignature
