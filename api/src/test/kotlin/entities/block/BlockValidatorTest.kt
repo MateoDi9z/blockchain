@@ -1,7 +1,7 @@
 package entities.block
 
 import api.entities.transaction.rules.PositiveAmountRule
-import entities.block.rule.BlockValidator
+import entities.block.rule.BlockValidatorFactory
 import entities.transaction.validator.TransactionValidator
 import testutils.TestBuilders
 import kotlin.test.Test
@@ -12,115 +12,62 @@ class BlockValidatorTest {
 
     private val txValidator = TransactionValidator(listOf(PositiveAmountRule()))
     private val difficulty = 2
+    private val blockValidator = BlockValidatorFactory.createDefault()
 
     @Test
-    fun validateReceivedBlock_returnsTrue_whenEverythingIsValid() {
-        val prevBlock = TestBuilders.makeMinedBlock(difficulty, index = 1, previousHash = "0")
+    fun validateReceivedBlock_returnsValid_whenEverythingIsCorrect() {
+        val prevBlock =
+            BlockMiner.mine(TestBuilders.makeBlock(index = 1, timestamp = 1000L), difficulty)
 
         val validTx = TestBuilders.makeTransaction(amount = 10L)
-        val newBlock =
-            TestBuilders.makeMinedBlock(
-                difficulty = difficulty,
+        val unminedNewBlock =
+            TestBuilders.makeBlock(
                 index = 2,
+                timestamp = 2000L,
                 previousHash = prevBlock.hash,
                 transactions = listOf(validTx),
             )
-        val newBlockDto = TestBuilders.toDto(newBlock)
+        val newBlock = BlockMiner.mine(unminedNewBlock, difficulty)
 
         val result =
-            BlockValidator.validateReceivedBlock(
-                newBlockDto,
-                difficulty,
-                prevBlock,
-                txValidator,
+            blockValidator.validateReceivedBlock(
+                block = newBlock,
+                difficulty = difficulty,
+                previousBlock = prevBlock,
+                txValidator = txValidator,
             )
 
-        assertTrue(result, "El bloque debería ser aceptado porque todo es correcto")
+        assertTrue(result.isValid, "The block should be accepted")
+        assertTrue(result.errorList.isEmpty())
     }
 
     @Test
-    fun validateReceivedBlock_returnsFalse_whenTransactionsAreInvalid() {
-        val prevBlock = TestBuilders.makeMinedBlock(difficulty, index = 1, previousHash = "0")
+    fun validateReceivedBlock_returnsCombinedErrors_fromBlockAndTransactions() {
+        val prevBlock =
+            BlockMiner.mine(TestBuilders.makeBlock(index = 1, timestamp = 5000L), difficulty)
 
-        val invalidTx = TestBuilders.makeTransaction(amount = -5L)
+        val invalidTx = TestBuilders.makeTransaction(amount = -50L)
 
-        val newBlock =
-            TestBuilders.makeMinedBlock(
-                difficulty = difficulty,
-                index = 2,
-                previousHash = prevBlock.hash,
-                transactions = listOf(invalidTx),
-            )
-        val newBlockDto = TestBuilders.toDto(newBlock)
-
-        val result =
-            BlockValidator.validateReceivedBlock(
-                newBlockDto,
-                difficulty,
-                prevBlock,
-                txValidator,
-            )
-
-        assertFalse(result, "El bloque debería ser rechazado por contener transacciones inválidas")
-    }
-
-    @Test
-    fun validateReceivedBlock_returnsFalse_whenChainLinkIsBroken() {
-        val prevBlock = TestBuilders.makeMinedBlock(difficulty, index = 1, previousHash = "0")
-        val validTx = TestBuilders.makeTransaction(amount = 10L)
-
-        val newBlock =
-            TestBuilders.makeMinedBlock(
-                difficulty = difficulty,
-                index = 2,
-                previousHash = "hash_falso",
-                transactions = listOf(validTx),
-            )
-        val newBlockDto = TestBuilders.toDto(newBlock)
-
-        val result =
-            BlockValidator.validateReceivedBlock(
-                newBlockDto,
-                difficulty,
-                prevBlock,
-                txValidator,
-            )
-
-        assertFalse(result, "El bloque debería ser rechazado por no apuntar al bloque anterior")
-    }
-
-    @Test
-    fun validateReceivedBlock_returnsFalse_whenIntegrityIsTampered() {
-        val prevBlock = TestBuilders.makeMinedBlock(difficulty, index = 1, previousHash = "0")
-        val validTx = TestBuilders.makeTransaction(amount = 10L)
-
-        val originalBlock =
-            TestBuilders.makeMinedBlock(
-                difficulty = difficulty,
-                index = 2,
-                previousHash = prevBlock.hash,
-                transactions = listOf(validTx),
-            )
-
-        val tamperedBlock =
+        val badBlock =
             Block(
-                index = originalBlock.index,
-                timestamp = originalBlock.timestamp,
-                transactions = originalBlock.transactions,
-                previousHash = originalBlock.previousHash,
-                hash = "hash_manipulado",
-                nonce = originalBlock.nonce,
+                index = 2,
+                timestamp = 1000L,
+                transactions = listOf(invalidTx),
+                previousHash = "wrong_hash",
+                hash = "bad_hash",
+                nonce = 0L,
             )
-        val tamperedDto = TestBuilders.toDto(tamperedBlock)
 
         val result =
-            BlockValidator.validateReceivedBlock(
-                tamperedDto,
-                difficulty,
-                prevBlock,
-                txValidator,
+            blockValidator.validateReceivedBlock(
+                block = badBlock,
+                difficulty = difficulty,
+                previousBlock = prevBlock,
+                txValidator = txValidator,
             )
 
-        assertFalse(result, "El bloque debería ser rechazado porque su hash fue alterado")
+        assertFalse(result.isValid)
+        assertTrue(result.errorList.size >= 5, "Should collect both block and transaction errors")
+        assertTrue(result.errorList.any { it.contains("amount") }, "Missing transaction error")
     }
 }
