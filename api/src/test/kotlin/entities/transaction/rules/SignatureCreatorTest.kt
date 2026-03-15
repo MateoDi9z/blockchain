@@ -69,7 +69,10 @@ class SignatureCreatorTest {
 
     @Test
     fun `verifySignature returns false when publicKey is null`() {
-        assertFalse(verifySignature(null, "message", "signature"), "Verification must fail gracefully on null public key")
+        assertFalse(
+            verifySignature(null, "message", "signature"),
+            "Verification must fail gracefully on null public key",
+        )
     }
 
     @Test

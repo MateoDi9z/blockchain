@@ -42,8 +42,8 @@ fun verifySignature(
     }
 }
 
-fun getPublicKeyFromString(keyString: String): PublicKey? {
-    return try {
+fun getPublicKeyFromString(keyString: String): PublicKey? =
+    try {
         val publicBytes = Base64.getDecoder().decode(keyString)
         val keySpec = X509EncodedKeySpec(publicBytes)
         val keyFactory = KeyFactory.getInstance("EC")
@@ -53,4 +53,3 @@ fun getPublicKeyFromString(keyString: String): PublicKey? {
     } catch (e: InvalidKeySpecException) {
         null
     }
-}
