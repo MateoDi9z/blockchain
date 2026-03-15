@@ -1,22 +1,24 @@
-package api.entities.transaction.validator
+package entities.transaction.validator
 
 import api.dtos.Transaction
 import api.entities.transaction.rules.TransactionRule
+import entities.transaction.rules.ValidationResult
 
 class TransactionValidator(
     private val rules: List<TransactionRule>,
 ) {
-    private val errors = mutableListOf<String>()
+    fun validate(transaction: Transaction): ValidationResult {
+        val localErrors = mutableListOf<String>()
 
-    fun validate(transaction: Transaction): Boolean {
-        errors.clear()
         for (rule in rules) {
             if (!rule.isValid(transaction)) {
-                errors.add(rule.getErrorMessage())
+                localErrors.add(rule.getErrorMessage())
             }
         }
-        return errors.isEmpty()
-    }
 
-    fun getErrors(): String = errors.joinToString(" | ")
+        return ValidationResult(
+            isValid = localErrors.isEmpty(),
+            errorList = localErrors,
+        )
+    }
 }
