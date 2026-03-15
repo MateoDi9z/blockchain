@@ -1,6 +1,9 @@
-package api.entities.transaction.rules
+package entities.transaction.rules
 
 import api.dtos.Transaction
+import api.entities.transaction.rules.CompositeTransactionRule
+import api.entities.transaction.rules.PositiveAmountRule
+import api.entities.transaction.rules.SignatureNotEmptyRule
 import api.entities.transaction.validator.TransactionValidator
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -76,8 +79,7 @@ class TransactionRulesTest {
     fun transactionValidator_returnsTrueAndEmptyErrorsWhenAllRulesPass() {
         val rules = listOf(PositiveAmountRule(), SignatureNotEmptyRule())
         val validator =
-            api.entities.transaction.validator
-                .TransactionValidator(rules)
+            TransactionValidator(rules)
         val tx = Transaction(from = "a", to = "b", amount = 3.0f, signature = "sig")
 
         assertTrue(validator.validate(tx))
@@ -88,8 +90,7 @@ class TransactionRulesTest {
     fun transactionValidator_returnsFalseAndAggregatesErrorsWhenRulesFail() {
         val rules = listOf(PositiveAmountRule(), SignatureNotEmptyRule())
         val validator =
-            api.entities.transaction.validator
-                .TransactionValidator(rules)
+            TransactionValidator(rules)
         val tx = Transaction(from = "a", to = "b", amount = 0.0f, signature = "")
 
         assertFalse(validator.validate(tx))
