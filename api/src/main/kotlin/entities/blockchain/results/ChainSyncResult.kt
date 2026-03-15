@@ -1,9 +1,9 @@
-package api.entities.blockchain.results
+package entities.blockchain.results
 
-sealed interface ChainSyncResult {
-    object Success : ChainSyncResult
+sealed interface ChainSyncResult
 
-    data class Rejected(
-        val reason: String,
-    ) : ChainSyncResult
-}
+object Success : ChainSyncResult
+
+data class Rejected(
+    val reason: String,
+) : ChainSyncResult

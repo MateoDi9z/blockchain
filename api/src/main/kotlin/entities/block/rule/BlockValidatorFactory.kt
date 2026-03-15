@@ -8,6 +8,7 @@ object BlockValidatorFactory {
                 ChainLinkRule(),
                 ValidHashRule(),
                 ProofOfWorkRule(),
+                TimestampRule(),
             )
 
         val compositeRule = CompositeBlockRule(rulesList)

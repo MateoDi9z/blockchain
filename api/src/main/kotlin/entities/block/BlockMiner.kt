@@ -1,6 +1,4 @@
-package api.entities.block
-
-import entities.block.Block
+package entities.block
 
 object BlockMiner {
 

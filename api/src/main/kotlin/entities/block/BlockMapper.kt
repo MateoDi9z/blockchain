@@ -1,7 +1,6 @@
-package api.entities.block
+package entities.block
 
 import dtos.BlockDTO
-import entities.block.Block
 
 object BlockMapper {
     fun toEntity(dto: BlockDTO): Block =
