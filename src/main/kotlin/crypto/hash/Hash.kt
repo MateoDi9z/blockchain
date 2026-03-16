@@ -8,7 +8,7 @@ object Hash {
          val hashBytes = digest.digest(input.toByteArray(Charsets.UTF_8))
 
         return hashBytes.joinToString("") {
-            "%02x".format(it)
+            "%02x".format(it.toInt() and 0xff)
         }
     }
 }
