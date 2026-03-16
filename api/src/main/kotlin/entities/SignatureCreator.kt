@@ -16,7 +16,7 @@ fun createSignature(
 ): String {
     val s = Signature.getInstance("SHA256withECDSA")
     s.initSign(privateKey)
-    s.update(message.toByteArray())
+    s.update(message.toByteArray(Charsets.UTF_8))
     val signatureBytes = s.sign()
     return Base64.getEncoder().encodeToString(signatureBytes)
 }
@@ -30,7 +30,7 @@ fun verifySignature(
     return try {
         val s = Signature.getInstance("SHA256withECDSA")
         s.initVerify(publicKey)
-        s.update(message.toByteArray())
+        s.update(message.toByteArray(Charsets.UTF_8))
         val signatureBytes = Base64.getDecoder().decode(signature)
         s.verify(signatureBytes)
     } catch (e: IllegalArgumentException) {
