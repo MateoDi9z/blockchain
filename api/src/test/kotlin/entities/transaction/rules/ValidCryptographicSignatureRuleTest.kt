@@ -52,7 +52,7 @@ class ValidCryptographicSignatureRuleTest {
     @Test
     fun `False for a signature from a different private key`() {
         val otherKeyPair = KeyPairGenerator.getInstance("EC").generateKeyPair()
-        val message = publicKeyString + "bob" + 10.0f
+        val message = publicKeyString + "bob" + 10L
 
         val invalidSignature = createSignature(otherKeyPair.private, message)
         val tx = Transaction(publicKeyString, "bob", 10L, invalidSignature)
