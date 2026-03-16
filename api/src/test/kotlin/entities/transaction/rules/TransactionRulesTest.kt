@@ -1,7 +1,6 @@
 package entities.transaction.rules
 
 import api.dtos.Transaction
-import api.entities.transaction.rules.PositiveAmountRule
 import api.entities.transaction.rules.SignatureNotEmptyRule
 import entities.transaction.validator.TransactionValidator
 import kotlin.test.Test

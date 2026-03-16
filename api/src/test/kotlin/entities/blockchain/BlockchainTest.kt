@@ -3,7 +3,7 @@ package entities.blockchain
 import entities.block.BlockMiner
 import entities.results.OperationResult
 import entities.transaction.validator.TransactionValidator
-import api.entities.transaction.rules.PositiveAmountRule
+import entities.transaction.rules.PositiveAmountRule
 import testutils.TestBuilders
 import kotlin.test.Test
 import kotlin.test.assertEquals

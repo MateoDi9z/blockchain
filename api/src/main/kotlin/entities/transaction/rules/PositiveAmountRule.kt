@@ -1,6 +1,7 @@
-package api.entities.transaction.rules
+package entities.transaction.rules
 
 import api.dtos.Transaction
+import api.entities.transaction.rules.TransactionRule
 
 class PositiveAmountRule : TransactionRule {
     override fun isValid(transaction: Transaction): Boolean = transaction.amount > 0L

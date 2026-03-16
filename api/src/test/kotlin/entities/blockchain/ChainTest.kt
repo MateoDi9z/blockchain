@@ -4,7 +4,7 @@ import entities.block.Block
 import entities.block.BlockMiner
 import entities.results.OperationResult
 import entities.transaction.validator.TransactionValidator
-import api.entities.transaction.rules.PositiveAmountRule
+import entities.transaction.rules.PositiveAmountRule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

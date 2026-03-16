@@ -1,6 +1,6 @@
 package entities.transaction.validator
 
-import api.entities.transaction.rules.PositiveAmountRule
+import entities.transaction.rules.PositiveAmountRule
 import api.entities.transaction.rules.SignatureNotEmptyRule
 import api.entities.transaction.rules.TransactionRule
 import api.entities.transaction.rules.ValidCryptographicSignatureRule
