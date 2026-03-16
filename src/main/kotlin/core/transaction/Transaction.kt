@@ -1,11 +1,13 @@
 package org.example.core.transaction
 
 import org.example.crypto.hash.Hash
+import java.math.BigDecimal
+import java.math.RoundingMode
 import kotlin.math.pow
 
 // Usamos 6 decimales en el LONG
 // => valor real = Long / 10^6
-val DECIMALS = 6
+private const val DECIMALS = 6
 
 data class Transaction (
     val from: String,
@@ -21,7 +23,11 @@ data class Transaction (
     ) : this(
         from,
         to,
-        (realValue * 10.0.pow(DECIMALS)).toLong(),
+        BigDecimal
+            .valueOf(realValue)
+            .setScale(DECIMALS, RoundingMode.HALF_UP)
+            .unscaledValue()
+            .longValueExact(),
         timestamp
     )
 

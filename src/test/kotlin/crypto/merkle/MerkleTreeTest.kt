@@ -3,7 +3,6 @@ package org.example.crypto.merkle
 import org.example.core.transaction.Transaction
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import java.sql.Timestamp
 
 class MerkleTreeTest {
 

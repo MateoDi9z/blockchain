@@ -1,7 +1,6 @@
 package org.example.core
 
 import org.example.core.transaction.Transaction
-import org.example.crypto.hash.Hash
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
