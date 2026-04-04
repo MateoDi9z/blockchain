@@ -205,6 +205,9 @@ class Blockchain:
         if computed != block.hash:
             return False
 
+        if block.timestamp <= previous_block.timestamp:
+            return False
+
         if not hash_valid(block.hash):
             return False
 
