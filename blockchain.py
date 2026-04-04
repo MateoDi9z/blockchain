@@ -1,11 +1,10 @@
 import threading
 import time
-from typing import Any
-
 import requests as http_requests
 
+from typing import Any
 from models import Block, Transaction
-from utils import calculate_hash, hash_valid
+from utils import calculate_hash, hash_valid, TRANSACTION_TYPE
 
 
 class Blockchain:
@@ -61,9 +60,19 @@ class Blockchain:
             nonce=nonce
         )
 
-    def mine_block(self):
+    def mine_block(self, miner_address="MINER_NODE_ADDRESS"):
         with self.lock:
-            txs = self.pending_transactions[:]
+            coinbase_tx = Transaction(
+                from_addr="SYSTEM",
+                to_addr=miner_address,
+                amount=10.0,
+                sig="COINBASE_SIGNATURE"
+            )
+
+            coinbase_tx.type = "COINBASE"
+
+            txs = [coinbase_tx] + self.pending_transactions[:]
+
             self.pending_transactions = []
             last = self.chain[-1]
 
@@ -75,7 +84,7 @@ class Blockchain:
 
         with self.lock:
             if block.prev_hash != self.chain[-1].hash:
-                self.pending_transactions = txs + self.pending_transactions
+                self.pending_transactions = txs[1:] + self.pending_transactions
                 return None
 
             self.chain.append(block)
@@ -109,6 +118,18 @@ class Blockchain:
 
         if block.timestamp > time.time() + 60:
             return False
+
+        if not block.transactions:
+            return False
+
+        if block.transactions[0].get("type") != TRANSACTION_TYPE.COINBASE:
+            print("Block rejected: First transaction is not COINBASE")
+            return False
+
+        for tx in block.transactions[1:]:
+            if tx.get("type") == TRANSACTION_TYPE.COINBASE:
+                print("Block rejected: Multiple COINBASE transactions found")
+                return False
         return True
 
     @staticmethod
