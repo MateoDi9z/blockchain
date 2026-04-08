@@ -5,7 +5,7 @@ from typing import Any
 import requests as http_requests
 
 from models import Block, Transaction
-from utils import calculate_hash, hash_valid
+from utils import calculate_hash, hash_valid, TRANSACTION_TYPE
 
 
 class Blockchain:
