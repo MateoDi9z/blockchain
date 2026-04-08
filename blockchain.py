@@ -62,14 +62,17 @@ class Blockchain:
 
     def mine_block(self, miner_address="MINER_NODE_ADDRESS"):
         with self.lock:
+            block_timestamp = int(time.time() * 1000)
+
             coinbase_tx = Transaction(
                 from_addr="SYSTEM",
                 to_addr=miner_address,
-                amount=10.0,
-                sig="COINBASE_SIGNATURE"
+                amount=10,
+                public_key="0000000000000000000000000000000000000000000000000000000000000000",
+                signature="0000000000000000000000000000000000000000000000000000000000000000",
+                tx_type=TRANSACTION_TYPE.COINBASE,
+                timestamp=block_timestamp
             )
-
-            coinbase_tx.type = "COINBASE"
 
             txs = [coinbase_tx] + self.pending_transactions[:]
 
@@ -79,7 +82,8 @@ class Blockchain:
         block = self._mine_raw_block(
             index=last.index + 1,
             transactions=txs,
-            previous_hash=last.hash
+            previous_hash=last.hash,
+            timestamp=block_timestamp
         )
 
         with self.lock:
@@ -122,14 +126,33 @@ class Blockchain:
         if not block.transactions:
             return False
 
-        if block.transactions[0].get("type") != TRANSACTION_TYPE.COINBASE:
-            print("Block rejected: First transaction is not COINBASE")
-            return False
+        first_tx = block.transactions[0]
 
-        for tx in block.transactions[1:]:
-            if tx.get("type") == TRANSACTION_TYPE.COINBASE:
-                print("Block rejected: Multiple COINBASE transactions found")
+        try:
+            if first_tx["type"] != TRANSACTION_TYPE.COINBASE:
+                print("Rechazado: La primera tx no es COINBASE")
                 return False
+
+            if first_tx["from"] != "SYSTEM":
+                print("Rechazado: Coinbase from != SYSTEM")
+                return False
+
+            if first_tx["amount"] != 10:
+                print("Rechazado: Coinbase amount incorrecto")
+                return False
+
+            if first_tx["timestamp"] != block.timestamp:
+                print("Rechazado: Timestamp de Coinbase no coincide con el bloque")
+                return False
+
+            for tx in block.transactions[1:]:
+                if tx["type"] == TRANSACTION_TYPE.COINBASE:
+                    print("Rechazado: Múltiples transacciones COINBASE")
+                    return False
+
+        except KeyError as e:
+            print(f"Rechazado: Transacción inválida, falta el campo {e}")
+            return False
         return True
 
     @staticmethod
