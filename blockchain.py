@@ -21,6 +21,11 @@ class Blockchain:
 
         self.lock = threading.Lock()
         self.port = None
+
+        # Identidad del nodo (se inicializa en main.py)
+        self.node_address = "0x0000000000000000000000000000000000000000"
+        self.node_public_key = "0000000000000000000000000000000000000000000000000000000000000000"
+
         self._create_genesis_block()
 
     # -- Genesis block ------------------------------------------------------
@@ -68,16 +73,17 @@ class Blockchain:
             nonce=nonce
         )
 
-    def mine_block(self, miner_address="MINER_NODE_ADDRESS"):
+    def mine_block(self):
         with self.lock:
             block_timestamp = int(time.time() * 1000)
 
+            # La recompensa ahora va a la wallet real del nodo
             coinbase_tx = Transaction(
                 from_addr="SYSTEM",
-                to_addr=miner_address,
+                to_addr=self.node_address,
                 amount=10,
-                public_key="0000000000000000000000000000000000000000000000000000000000000000",
-                signature="0000000000000000000000000000000000000000000000000000000000000000",
+                public_key="00000....00",
+                signature="000.....000",
                 tx_type=TRANSACTION_TYPE.COINBASE,
                 timestamp=block_timestamp
             )
@@ -231,7 +237,8 @@ class Blockchain:
 
     # -- Block and chain validation ----------------------------------------
 
-    def validate_block(self, block: Block, previous_block: Block = None, external_balances: dict = None, is_full_chain_validation: bool = False):
+    def validate_block(self, block: Block, previous_block: Block = None, external_balances: dict = None,
+                       is_full_chain_validation: bool = False):
         if block.index < 0: return False
         if block.timestamp <= 0: return False
         if block.transactions is None: return False
@@ -254,9 +261,6 @@ class Blockchain:
         if block.index != previous_block.index + 1: return False
         if block.prev_hash != previous_block.hash: return False
         if block.timestamp <= previous_block.timestamp: return False
-
-        current_time_ms = int(time.time() * 1000)
-        if block.timestamp > current_time_ms + 60000: return False
 
         if len(block.transactions) == 0: return False
 
@@ -335,7 +339,8 @@ class Blockchain:
 
         for i in range(1, len(chain)):
             # Validamos cada bloque suministrando los balances arrastrados
-            if not self.validate_block(chain[i], chain[i - 1], external_balances=state_balances, is_full_chain_validation=True):
+            if not self.validate_block(chain[i], chain[i - 1], external_balances=state_balances,
+                                       is_full_chain_validation=True):
                 return False
 
         return True
