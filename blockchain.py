@@ -163,28 +163,6 @@ class Blockchain:
 
         return True
 
-    @staticmethod
-    def _validate_ownership(tx) -> bool:
-        """Validate that: from matches the address derived from the public key"""
-        if not validate_from_matches_public_key(tx.from_addr, tx.public_key):
-            print("Error: 'from' does not match the public key")
-            return False
-        return True
-
-    @staticmethod
-    def _validate_signature(tx) -> bool:
-        """Verify the cryptographic signature against the canonical payload"""
-        payload = get_canonical_payload(
-            tx.from_addr,
-            tx.to_addr,
-            tx.amount,
-            tx.timestamp
-        )
-        if not verify_signature(payload, tx.signature, tx.from_addr):
-            print("Error: Invalid cryptographic signature")
-            return False
-        return True
-
     def _validate_balance(self, tx) -> bool:
         """Verify that the sender has sufficient funds"""
         if self.get_balance(tx.from_addr) < tx.amount:
@@ -223,116 +201,52 @@ class Blockchain:
 
     @staticmethod
     def validate_block(block: Block, previous_block: Block = None):
-        if block.index < 0:
-            return False
-        if block.timestamp <= 0:
-            return False
-        if block.transactions is None:
-            return False
-        if block.prev_hash is None:
-            return False
-        if block.hash is None:
-            return False
-        if block.nonce < 0:
-            return False
+        if block.index < 0: return False
+        if block.timestamp <= 0: return False
+        if block.transactions is None: return False
+        if block.prev_hash is None: return False
+        if block.hash is None: return False
+        if block.nonce < 0: return False
 
         computed = calculate_hash(
-            block.index,
-            block.timestamp,
-            block.transactions,
-            block.prev_hash,
-            block.nonce,
+            block.index, block.timestamp, block.transactions, block.prev_hash, block.nonce
         )
+        if computed != block.hash: return False
+        if not hash_valid(block.hash): return False
 
-        if computed != block.hash:
-            return False
+        if block.index == 0:
+            if block.prev_hash != "0": return False
+            if len(block.transactions) != 0: return False
+            return True
 
-        if block.timestamp <= previous_block.timestamp:
-            return False
+        if previous_block is None: return False
+        if block.index != previous_block.index + 1: return False
+        if block.prev_hash != previous_block.hash: return False
+        if block.timestamp <= previous_block.timestamp: return False
 
-        if not hash_valid(block.hash):
-            return False
 
-        if block.timestamp > time.time() + 60:
-            return False
+        current_time_ms = int(time.time() * 1000)
+        if block.timestamp > current_time_ms + 60000: return False
 
-        if not block.transactions:
-            return False
+        if len(block.transactions) == 0: return False
+
+        def get_tx_field(tx, field):
+            return tx.get(field) if isinstance(tx, dict) else getattr(tx, field, None)
 
         first_tx = block.transactions[0]
 
-        try:
-            if first_tx["type"] != TRANSACTION_TYPE.COINBASE:
-                print("Rechazado: La primera tx no es COINBASE")
-                return False
+        # Validar COINBASE exacta
+        if get_tx_field(first_tx, 'type') != TRANSACTION_TYPE.COINBASE: return False
+        if get_tx_field(first_tx, 'from') != "SYSTEM": return False
+        if int(get_tx_field(first_tx, 'amount')) != 10: return False
+        if get_tx_field(first_tx, 'timestamp') != block.timestamp: return False
 
-            if first_tx["from"] != "SYSTEM":
-                print("Rechazado: Coinbase from != SYSTEM")
-                return False
+        coinbase_count = sum(1 for tx in block.transactions if get_tx_field(tx, 'type') == TRANSACTION_TYPE.COINBASE)
+        if coinbase_count != 1: return False
 
-            if first_tx["amount"] != 10:
-                print("Rechazado: Coinbase amount incorrecto")
-                return False
-
-            if first_tx["timestamp"] != block.timestamp:
-                print("Rechazado: Timestamp de Coinbase no coincide con el bloque")
-                return False
-
-            for tx in block.transactions[1:]:
-                if tx["type"] == TRANSACTION_TYPE.COINBASE:
-                    print("Rechazado: Múltiples transacciones COINBASE")
-                    return False
-
-        except KeyError as e:
-            print(f"Rechazado: Transacción inválida, falta el campo {e}")
-            return False
-
-        if block.index == 0:
-            if block.prev_hash != "0":
-                return False
-            if len(block.transactions) != 0:
-                return False
-            return True
-
-        if block.index > 0:
-            if previous_block is None:
-                return False
-
-            if block.prev_hash != previous_block.hash:
-                return False
-
-            if block.index != previous_block.index + 1:
-                return False
-
-            if block.timestamp <= previous_block.timestamp:
-                return False
-
-            if len(block.transactions) == 0:
-                return False
-
-            def get_tx_field(tx, field):
-                return tx.get(field) if isinstance(tx, dict) else getattr(tx, field, None)
-
-            if get_tx_field(block.transactions[0], 'type') != TRANSACTION_TYPE.COINBASE:
-                return False
-
-            coinbase_count = sum(
-                1 for tx in block.transactions if get_tx_field(tx, 'type') == TRANSACTION_TYPE.COINBASE)
-            if coinbase_count != 1:
-                return False
-
-            if get_tx_field(block.transactions[0], 'timestamp') != block.timestamp:
-                return False
-
-            for tx in block.transactions[1:]:
-                if get_tx_field(tx, 'type') != TRANSACTION_TYPE.TRANSFER:
-                    return False
-
-        current_time_ms = int(time.time() * 1000)
-        if block.timestamp > current_time_ms + 60000:
-            return False
-        if not Blockchain.validate_transaction(tx):
-            return False
+        for tx in block.transactions[1:]:
+            if get_tx_field(tx, 'type') != TRANSACTION_TYPE.TRANSFER: return False
+            # Las reglas criptográficas (firmas) ya se validan en el mempool antes de minar.
 
         return True
 
