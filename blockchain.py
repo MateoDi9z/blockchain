@@ -25,7 +25,7 @@ class Blockchain:
             index=0,
             transactions=[],
             previous_hash="0",
-            timestamp=0,
+            timestamp=1,
         )
         self.chain.append(genesis)
 
@@ -191,6 +191,8 @@ class Blockchain:
 
         current_time_ms = int(time.time() * 1000)
         if block.timestamp > current_time_ms + 60000:
+            return False
+        if not Blockchain.validate_transaction(tx):
             return False
 
         return True
