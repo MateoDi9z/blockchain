@@ -273,6 +273,8 @@ class Blockchain:
         if get_tx_field(first_tx, 'from') != "SYSTEM": return False
         if int(get_tx_field(first_tx, 'amount')) != 10: return False
         if get_tx_field(first_tx, 'timestamp') != block.timestamp: return False
+        if get_tx_field(first_tx, 'publicKey') != "00000....00": return False
+        if get_tx_field(first_tx, 'signature') != "000.....000": return False
 
         coinbase_count = sum(1 for tx in block.transactions if get_tx_field(tx, 'type') == TRANSACTION_TYPE.COINBASE)
         if coinbase_count != 1: return False
