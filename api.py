@@ -44,8 +44,7 @@ logging.getLogger('werkzeug').setLevel(logging.WARNING)
 def get_chain():
     with blockchain.lock:
         chain = [block.to_dict() if isinstance(block, Block) else block for block in blockchain.chain]
-
-    return jsonify({"chain": chain, "length": len(chain)})
+    return ApiResponse().ok("Chain retrieved successfully", {"chain": chain, "length": len(chain)})
 
 
 @app.route("/peers", methods=["GET"])
