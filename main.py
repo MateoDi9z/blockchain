@@ -10,6 +10,7 @@ from blockchain import blockchain
 from cli import cli_loop, resolve_periodically
 from crypto import create_wallet
 from utils import DIFFICULTY
+from crypto import create_wallet
 
 
 def init_node_wallet():
@@ -96,10 +97,15 @@ def main():
     if not seed_peers:
         seed_peers = os.environ.get("SEED_PEERS", "")
 
-    print(f"  Starting node on port {args.port}")
-
+    # Generar la identidad (wallet) de este nodo
+    wallet = create_wallet()
+    blockchain.node_address = wallet["address"]
+    blockchain.node_public_key = wallet["public_key"]
     blockchain.port = args.port
     init_node_wallet()
+
+    print(f"  Starting node on port {args.port}")
+    print(f"  Node Address: {blockchain.node_address}")
 
     if seed_peers:
         bootstrap_node(seed_peers, args.port)

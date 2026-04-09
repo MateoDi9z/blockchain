@@ -275,7 +275,8 @@ class Blockchain:
 
     # -- Block and chain validation ----------------------------------------
 
-    def validate_block(self, block: Block, previous_block: Block = None, external_balances: dict = None, is_full_chain_validation: bool = False):
+    def validate_block(self, block: Block, previous_block: Block = None, external_balances: dict = None,
+                       is_full_chain_validation: bool = False):
         if block.index < 0: return False
         if block.timestamp <= 0: return False
         if block.transactions is None: return False
@@ -315,6 +316,8 @@ class Blockchain:
         if get_tx_field(first_tx, 'from') != "SYSTEM": return False
         if int(get_tx_field(first_tx, 'amount')) != BLOCK_REWARD: return False
         if get_tx_field(first_tx, 'timestamp') != block.timestamp: return False
+        if get_tx_field(first_tx, 'publicKey') != "0" * 64: return False
+        if get_tx_field(first_tx, 'signature') != "0" * 64: return False
 
         pk_cb = get_tx_field(first_tx, 'publicKey')
         sig_cb = get_tx_field(first_tx, 'signature')
@@ -326,7 +329,7 @@ class Blockchain:
         coinbase_count = sum(1 for tx in block.transactions if get_tx_field(tx, 'type') == TRANSACTION_TYPE.COINBASE)
         if coinbase_count != 1: return False
 
-        # --- NUEVA SIMULACIÓN DE ESTADO Y VALIDACIÓN ESTRICTA ---
+
         simulated_balances = external_balances.copy() if external_balances is not None else {}
 
         def get_simulated_balance(addr):
@@ -343,7 +346,7 @@ class Blockchain:
         miner_amount = int(get_tx_field(first_tx, "amount"))
         simulated_balances[miner_addr] = get_simulated_balance(miner_addr) + miner_amount
 
-        # 2. Validamos el resto de las transacciones (TRANSFER)
+
         for tx in block.transactions[1:]:
             if get_tx_field(tx, 'type') != TRANSACTION_TYPE.TRANSFER: return False
 
@@ -377,7 +380,7 @@ class Blockchain:
             simulated_balances[f] -= tx_obj.amount
             simulated_balances[t] = get_simulated_balance(t) + tx_obj.amount
 
-        # Guardar estado por si estamos validando múltiples bloques (validate_chain)
+
         if external_balances is not None:
             external_balances.update(simulated_balances)
 
@@ -394,7 +397,8 @@ class Blockchain:
 
         for i in range(1, len(chain)):
             # Validamos cada bloque suministrando los balances arrastrados
-            if not self.validate_block(chain[i], chain[i - 1], external_balances=state_balances, is_full_chain_validation=True):
+            if not self.validate_block(chain[i], chain[i - 1], external_balances=state_balances,
+                                       is_full_chain_validation=True):
                 return False
 
         return True
@@ -413,7 +417,6 @@ class Blockchain:
         with self.lock:
             block_hash = block.hash
 
-            # Check cache to avoid gossip loops
             if block_hash in self.seen_blocks:
                 return False
 
@@ -424,14 +427,11 @@ class Blockchain:
             self.chain.append(block)
             self.seen_blocks.add(block_hash)
 
-            # Remove mined transactions from mempool
             mined_tx_ids = [tx["id"] if isinstance(tx, dict) else tx.id for tx in block.transactions]
             self.pending_transactions = [
                 tx for tx in self.pending_transactions
                 if (tx.get("id") if isinstance(tx, dict) else getattr(tx, "id")) not in mined_tx_ids
             ]
-
-        # Successfully added to chain, broadcast to peers
         threading.Thread(target=self.broadcast_block, args=(block,), daemon=True).start()
         return True
 
