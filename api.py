@@ -25,9 +25,16 @@ class ApiResponse:
 
 app = Flask(__name__)
 
-# Configure logging to minimize output
 app.logger.setLevel(logging.WARNING)
 logging.getLogger('werkzeug').setLevel(logging.WARNING)
+
+
+@app.after_request
+def _utf8_json_charset(response):
+    ct = response.headers.get("Content-Type", "")
+    if "application/json" in ct and "charset" not in ct:
+        response.headers["Content-Type"] = "application/json; charset=utf-8"
+    return response
 
 
 @app.route("/chain", methods=["GET"])
@@ -81,10 +88,22 @@ def new_transaction():
     if data.get("type") != TRANSACTION_TYPE.TRANSFER:
         return ApiResponse().error("INVALID_TYPE", "Only TRANSFER is accepted via POST /transactions"), 400
 
+    raw_amount = data["amount"]
+    if isinstance(raw_amount, bool) or isinstance(raw_amount, float):
+        return ApiResponse().error("INVALID_AMOUNT", "amount must be a JSON integer, no decimals"), 400
+    if isinstance(raw_amount, str) and ("." in raw_amount or "e" in raw_amount.lower()):
+        return ApiResponse().error("INVALID_AMOUNT", "amount must be an integer, no decimals"), 400
+    try:
+        amount = int(raw_amount)
+    except (TypeError, ValueError):
+        return ApiResponse().error("INVALID_AMOUNT", "amount must be a positive integer"), 400
+    if amount < 1:
+        return ApiResponse().error("INVALID_AMOUNT", "amount must be at least 1"), 400
+
     tx = Transaction(
         from_addr=data["from"],
         to_addr=data["to"],
-        amount=int(data["amount"]),
+        amount=amount,
         public_key=data["publicKey"],
         signature=data["signature"],
         tx_type=TRANSACTION_TYPE.TRANSFER,
@@ -95,12 +114,14 @@ def new_transaction():
     if blockchain.add_transaction(tx):
         return ApiResponse().ok({"accepted": True, "txId": tx.id}), 202
     else:
-        return ApiResponse().error("REJECTED_TRANSACTION", "Transaction invalid or already processed"), 400
+        return ApiResponse().error(
+            "INVALID_TRANSACTION",
+            "Transaction invalid, duplicate id, or insufficient balance",
+        ), 400
 
 
 @app.route("/mine", methods=["POST"])
 def mine():
-    # Eliminada la restricción de len(pending_transactions) == 0
     block = blockchain.mine_block()
 
     if block is None:
@@ -117,7 +138,7 @@ def mine():
     return ApiResponse().ok(data), 200
 
 
-@app.route("/blocks", methods=["POST"])  # Cambiado de /block/new a /blocks según TP1
+@app.route("/blocks", methods=["POST"])
 def receive_block():
     block = request.get_json(force=True)
     required = ["index", "timestamp", "transactions", "previousHash", "hash", "nonce"]

@@ -39,7 +39,6 @@ class Blockchain:
         public_key_hex: str,
         private_key_hex: str | None = None,
     ) -> None:
-        """Dirección y claves del nodo (minería, /status, firma de tx desde CLI)."""
         a = (address or "").strip()
         self.miner_address = a.lower()
         pk = (public_key_hex or "").strip()
@@ -50,8 +49,6 @@ class Blockchain:
         else:
             self.miner_private_key = None
 
-    # Genesis block
-
     def _create_genesis_block(self):
         genesis = self._mine_raw_block(
             index=0,
@@ -61,8 +58,6 @@ class Blockchain:
         )
         self.chain.append(genesis)
         self.seen_blocks.add(genesis.hash)
-
-    # Mining
 
     def _mine_raw_block(self, index: int, transactions: list, previous_hash: str, timestamp: int = None) -> Block:
         if timestamp is None:
@@ -126,12 +121,11 @@ class Blockchain:
 
         with self.lock:
             if block.prev_hash != self.chain[-1].hash:
-                # Chain changed while mining, restore mempool
                 self.pending_transactions = txs[1:] + self.pending_transactions
                 return None
 
             self.chain.append(block)
-            self.seen_blocks.add(block.hash)  # Cache the newly mined block
+            self.seen_blocks.add(block.hash)
 
         return block
 
@@ -176,12 +170,10 @@ class Blockchain:
 
     @staticmethod
     def _validate_ownership(tx) -> bool:
-        """Validate that: from == address(publicKey)"""
         return validate_from_matches_public_key(tx.from_addr, tx.public_key)
 
     @staticmethod
     def _validate_signature(tx) -> bool:
-        """Verify the cryptographic signature with the canonical payload"""
         payload = get_canonical_payload(
             tx.from_addr,
             tx.to_addr,
@@ -221,7 +213,6 @@ class Blockchain:
 
     @staticmethod
     def _validate_basic_rules(tx) -> bool:
-        """Basic logical rules: amount > 0 and from != to"""
         if tx.amount <= 0:
             return False
 
@@ -231,7 +222,6 @@ class Blockchain:
         return True
 
     def _validate_balance(self, tx) -> bool:
-        """Verify that the sender has sufficient funds"""
         if self.get_balance(tx.from_addr) < tx.amount:
             return False
         return True
@@ -272,8 +262,6 @@ class Blockchain:
             return False
 
         return True
-
-    # -- Block and chain validation ----------------------------------------
 
     def validate_block(self, block: Block, previous_block: Block = None, external_balances: dict = None,
                        is_full_chain_validation: bool = False):
@@ -316,8 +304,6 @@ class Blockchain:
         if get_tx_field(first_tx, 'from') != "SYSTEM": return False
         if int(get_tx_field(first_tx, 'amount')) != BLOCK_REWARD: return False
         if get_tx_field(first_tx, 'timestamp') != block.timestamp: return False
-        if get_tx_field(first_tx, 'publicKey') != "0" * 64: return False
-        if get_tx_field(first_tx, 'signature') != "0" * 64: return False
 
         pk_cb = get_tx_field(first_tx, 'publicKey')
         sig_cb = get_tx_field(first_tx, 'signature')
@@ -341,11 +327,9 @@ class Blockchain:
                     simulated_balances[a] = self.get_chain_balance(a)
             return simulated_balances[a]
 
-        # 1. Sumamos la recompensa de minado de la COINBASE al nodo minero
         miner_addr = (get_tx_field(first_tx, "to") or "").lower()
         miner_amount = int(get_tx_field(first_tx, "amount"))
         simulated_balances[miner_addr] = get_simulated_balance(miner_addr) + miner_amount
-
 
         for tx in block.transactions[1:]:
             if get_tx_field(tx, 'type') != TRANSACTION_TYPE.TRANSFER: return False
@@ -366,7 +350,6 @@ class Blockchain:
             if not tx_obj.public_key or not tx_obj.signature:
                 return False
 
-            # Validación de propiedades intrínsecas
             if not self._validate_basic_rules(tx_obj): return False
             if not self._validate_ownership(tx_obj): return False
             if not self._validate_signature(tx_obj): return False
@@ -396,7 +379,6 @@ class Blockchain:
         state_balances = {}
 
         for i in range(1, len(chain)):
-            # Validamos cada bloque suministrando los balances arrastrados
             if not self.validate_block(chain[i], chain[i - 1], external_balances=state_balances,
                                        is_full_chain_validation=True):
                 return False
@@ -434,8 +416,6 @@ class Blockchain:
             ]
         threading.Thread(target=self.broadcast_block, args=(block,), daemon=True).start()
         return True
-
-    # Consenso
 
     @staticmethod
     def _blocks_from_chain_json(peer_chain_raw: list) -> list:
@@ -495,10 +475,7 @@ class Blockchain:
                 self.seen_blocks.add(b.hash)
         return True
 
-    # P2P helpers (Gossip Protocol)
-
     def broadcast_block(self, block):
-        """Broadcasts a block to all registered peers."""
         block_dict = block.to_dict() if isinstance(block, Block) else block
 
         for peer in list(self.peers):
@@ -531,5 +508,4 @@ class Blockchain:
             self.peers.add(peer_url.rstrip("/"))
 
 
-# Global blockchain instance
 blockchain = Blockchain()

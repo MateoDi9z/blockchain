@@ -10,7 +10,6 @@ from blockchain import blockchain
 from cli import cli_loop, resolve_periodically
 from crypto import create_wallet
 from utils import DIFFICULTY
-from crypto import create_wallet
 
 
 def init_node_wallet():
@@ -24,6 +23,7 @@ def init_node_wallet():
             acct._key_obj.public_key.to_hex(),
             pk,
         )
+        print(f"  [Node] address={blockchain.miner_address} (NODE_PRIVATE_KEY)")
         return
     w = create_wallet()
     sk = w["private_key"]
@@ -82,30 +82,21 @@ def bootstrap_node(seeds_str, my_port):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Blockchain P2P Node")
-    parser.add_argument("--host", type=str, default="0.0.0.0", help="Host to listen on")
-    parser.add_argument("--port", type=int, default=5001, help="Port to listen on")
-    parser.add_argument(
-        "--peers",
-        type=str,
-        default="",
-        help="Comma-separated list of peer URLs (e.g. http://localhost:5001,http://localhost:5002)",
-    )
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--host", type=str, default="0.0.0.0")
+    parser.add_argument("--port", type=int, default=5001)
+    parser.add_argument("--peers", type=str, default="")
     args = parser.parse_args()
 
     seed_peers = args.peers
     if not seed_peers:
         seed_peers = os.environ.get("SEED_PEERS", "")
 
-    # Generar la identidad (wallet) de este nodo
-    wallet = create_wallet()
-    blockchain.node_address = wallet["address"]
-    blockchain.node_public_key = wallet["public_key"]
     blockchain.port = args.port
     init_node_wallet()
 
     print(f"  Starting node on port {args.port}")
-    print(f"  Node Address: {blockchain.node_address}")
+    print(f"  Miner address: {blockchain.miner_address}")
 
     if seed_peers:
         bootstrap_node(seed_peers, args.port)

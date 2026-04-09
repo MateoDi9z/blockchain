@@ -54,5 +54,5 @@ def verify_signature(payload: str, signature_b64: str, expected_address: str) ->
         recovered_address = Account.recover_message(message, signature=signature_bytes)
 
         return recovered_address.lower() == expected_address.lower()
-    except Exception as e:
+    except Exception:
         return False

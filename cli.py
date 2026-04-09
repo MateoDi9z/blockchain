@@ -17,7 +17,6 @@ def resolve_periodically(interval=30):
 
 
 def normalize_eth_address(addr: str) -> str | None:
-    """Acepta 0x + 40 hex o solo 40 hex (el input del CLI ya viene en minúsculas)."""
     a = addr.strip().lower()
     if re.fullmatch(r"0x[0-9a-f]{40}", a):
         return a
@@ -27,7 +26,6 @@ def normalize_eth_address(addr: str) -> str | None:
 
 
 def tx_handler(args):
-    """TRANSFER firmada con la wallet del nodo: tx <to> <amount>"""
     if len(args) < 2:
         print("  Uso: tx <direccion_destino> <monto>")
         print("  Ejemplo: tx 0x14f63d9393d3b9d3182d245f3f5ddfba7b4452e1 7")
@@ -82,7 +80,6 @@ def tx_handler(args):
 
 
 def balance_handler(args):
-    """Muestra el saldo de la wallet del nodo. Uso opcional: balance <0x...> para otra dirección."""
     if args:
         addr = normalize_eth_address(args[0])
         if not addr:
@@ -120,7 +117,7 @@ cmd_functions = {
 
 def get_my_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))  # No hace falta que exista conexión real
+    s.connect(("8.8.8.8", 80))
     ip_local = s.getsockname()[0]
     s.close()
     

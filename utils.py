@@ -1,8 +1,8 @@
 import hashlib
 import socket
 
-DIFFICULTY = 4  # number of leading zeros required in block hash (hash debe empezar con 0000)
-AUTO_MINE_THRESHOLD = 3  # auto-minado al llegar a 3 TRANSFER pendientes
+DIFFICULTY = 4
+AUTO_MINE_THRESHOLD = 3
 BLOCK_REWARD = 10
 
 class TRANSACTION_TYPE:
@@ -39,7 +39,7 @@ def is_placeholder_zeros(s: str) -> bool:
 def get_my_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        s.connect(("8.8.8.8", 80)) # No hace conexión real
+        s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
     except Exception:
         ip = "127.0.0.1"
