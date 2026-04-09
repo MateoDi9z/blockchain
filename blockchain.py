@@ -199,8 +199,7 @@ class Blockchain:
 
     # -- Block and chain validation ----------------------------------------
 
-    @staticmethod
-    def validate_block(block: Block, previous_block: Block = None):
+    def validate_block(self,block: Block, previous_block: Block = None):
         if block.index < 0: return False
         if block.timestamp <= 0: return False
         if block.transactions is None: return False
@@ -245,10 +244,27 @@ class Blockchain:
 
         for tx in block.transactions[1:]:
             if get_tx_field(tx, 'type') != TRANSACTION_TYPE.TRANSFER: return False
+
+            if isinstance(tx, dict):
+                tx_obj = Transaction(
+                    from_addr=tx.get("from"),
+                    to_addr=tx.get("to"),
+                    amount=tx.get("amount"),
+                    public_key=tx.get("publicKey"),
+                    signature=tx.get("signature"),
+                    tx_type=tx.get("type"),
+                    tx_id=tx.get("id"),
+                    timestamp=tx.get("timestamp")
+                )
+            else:
+                tx_obj = tx
+
+            if not self.validate_transaction(tx_obj):
+                return False
+
         return True
 
-    @staticmethod
-    def validate_chain(chain: list[Block]):
+    def validate_chain(self,chain: list[Block]):
         if not chain:
             return False
 
