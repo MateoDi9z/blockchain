@@ -8,14 +8,12 @@ from utils import TRANSACTION_TYPE, get_my_ip
 
 class ApiResponse:
     def ok(self, data=None):
-        """Genera el formato de éxito. Si hay data, la fusiona en la raíz."""
         response = {"status": "ok"}
         if data is not None:
             response.update(data)
         return jsonify(response)
 
     def error(self, code: str, message: str):
-        """Genera estrictamente el formato de error de la sección 9.1 del TP"""
         return jsonify({
             "status": "error",
             "error": {
@@ -27,9 +25,16 @@ class ApiResponse:
 
 app = Flask(__name__)
 
-# Configure logging to minimize output
 app.logger.setLevel(logging.WARNING)
 logging.getLogger('werkzeug').setLevel(logging.WARNING)
+
+
+@app.after_request
+def _utf8_json_charset(response):
+    ct = response.headers.get("Content-Type", "")
+    if "application/json" in ct and "charset" not in ct:
+        response.headers["Content-Type"] = "application/json; charset=utf-8"
+    return response
 
 
 @app.route("/chain", methods=["GET"])
@@ -53,7 +58,7 @@ def register_peer():
     peer = data.get("peer") or data.get("url")
 
     if not peer:
-        return ApiResponse().error("MISSING_PEER", "peer field required"), 400
+        return ApiResponse().error("MISSING_PEER", "url field required (base URL http://HOST:PORT)"), 400
 
     blockchain.register_peers([peer])
     return ApiResponse().ok({
@@ -73,33 +78,50 @@ def get_pending():
 def new_transaction():
     data = request.get_json(force=True)
 
-    if not all(k in data for k in ("from", "to", "amount", "signature", "publicKey", "timestamp")):
+    required = ("id", "type", "from", "to", "amount", "signature", "publicKey", "timestamp")
+    if not all(k in data for k in required):
         return ApiResponse().error("MISSING_FIELDS", "Missing fields in transaction"), 400
 
-    # Evitamos que entren COINBASE por la API (Regla TP1)
     if data.get("type") == TRANSACTION_TYPE.COINBASE:
         return ApiResponse().error("INVALID_TYPE", "COINBASE transactions are not accepted via API"), 400
+
+    if data.get("type") != TRANSACTION_TYPE.TRANSFER:
+        return ApiResponse().error("INVALID_TYPE", "Only TRANSFER is accepted via POST /transactions"), 400
+
+    raw_amount = data["amount"]
+    if isinstance(raw_amount, bool) or isinstance(raw_amount, float):
+        return ApiResponse().error("INVALID_AMOUNT", "amount must be a JSON integer, no decimals"), 400
+    if isinstance(raw_amount, str) and ("." in raw_amount or "e" in raw_amount.lower()):
+        return ApiResponse().error("INVALID_AMOUNT", "amount must be an integer, no decimals"), 400
+    try:
+        amount = int(raw_amount)
+    except (TypeError, ValueError):
+        return ApiResponse().error("INVALID_AMOUNT", "amount must be a positive integer"), 400
+    if amount < 1:
+        return ApiResponse().error("INVALID_AMOUNT", "amount must be at least 1"), 400
 
     tx = Transaction(
         from_addr=data["from"],
         to_addr=data["to"],
-        amount=int(data["amount"]),
+        amount=amount,
         public_key=data["publicKey"],
         signature=data["signature"],
-        tx_type=data.get("type", TRANSACTION_TYPE.TRANSFER),
-        tx_id=data.get("id"),
-        timestamp=data["timestamp"]
+        tx_type=TRANSACTION_TYPE.TRANSFER,
+        tx_id=data["id"],
+        timestamp=data["timestamp"],
     )
 
     if blockchain.add_transaction(tx):
         return ApiResponse().ok({"accepted": True, "txId": tx.id}), 202
     else:
-        return ApiResponse().error("REJECTED_TRANSACTION", "Transaction invalid or already processed"), 400
+        return ApiResponse().error(
+            "INVALID_TRANSACTION",
+            "Transaction invalid, duplicate id, or insufficient balance",
+        ), 400
 
 
 @app.route("/mine", methods=["POST"])
 def mine():
-    # Eliminada la restricción de len(pending_transactions) == 0
     block = blockchain.mine_block()
 
     if block is None:
@@ -116,7 +138,7 @@ def mine():
     return ApiResponse().ok(data), 200
 
 
-@app.route("/blocks", methods=["POST"])  # Cambiado de /block/new a /blocks según TP1
+@app.route("/blocks", methods=["POST"])
 def receive_block():
     block = request.get_json(force=True)
     required = ["index", "timestamp", "transactions", "previousHash", "hash", "nonce"]
@@ -168,11 +190,17 @@ def node_status():
         chain_length = len(blockchain.chain)
         latest_hash = blockchain.chain[-1].hash if chain_length > 0 else ""
 
+    pk = blockchain.miner_public_key or ""
+    if pk and not pk.startswith("0x"):
+        pk_out = f"0x{pk}"
+    else:
+        pk_out = pk or ""
+
     return ApiResponse().ok({
         "node": {
             "url": f"http://{get_my_ip()}:{blockchain.port}",
-            "address": blockchain.node_address,
-            "publickey": blockchain.node_public_key
+            "address": blockchain.miner_address or "",
+            "publicKey": pk_out,
         },
         "chain": {
             "length": chain_length,

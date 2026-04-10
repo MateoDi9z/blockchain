@@ -1,9 +1,9 @@
 import hashlib
 import socket
 
-DIFFICULTY = 4  # number of leading zeros required in block hash
-TRANSACTIONS_PER_BLOCK = 5
-AUTO_MINE_THRESHOLD = 3
+DIFFICULTY = 4
+AUTO_MINE_THRESHOLD = 1
+BLOCK_REWARD = 10
 
 class TRANSACTION_TYPE:
     TRANSFER = "TRANSFER"
@@ -30,10 +30,16 @@ def hash_valid(hash_value):
     return hash_value.startswith("0" * DIFFICULTY)
 
 
+def is_placeholder_zeros(s: str) -> bool:
+    if not isinstance(s, str) or not s.strip():
+        return False
+    return all(c == "0" for c in s.strip())
+
+
 def get_my_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        s.connect(("8.8.8.8", 80)) # No hace conexión real
+        s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
     except Exception:
         ip = "127.0.0.1"
