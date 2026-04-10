@@ -2,7 +2,7 @@ import hashlib
 import socket
 
 DIFFICULTY = 4
-AUTO_MINE_THRESHOLD = 3
+AUTO_MINE_THRESHOLD = 1
 BLOCK_REWARD = 10
 
 class TRANSACTION_TYPE:

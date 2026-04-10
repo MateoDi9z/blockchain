@@ -104,7 +104,7 @@ cmd_functions = {
     "b": balance_handler,
     "pt": lambda args: print(
         f"Pending transactions: {[tx.to_dict() if hasattr(tx, 'to_dict') else tx for tx in blockchain.pending_transactions]}"),
-    "mine": lambda args: http_requests.post(f"http://localhost:{blockchain.port}/mine", timeout=10),
+    "mine": lambda args: http_requests.post(f"http://localhost:{blockchain.port}/mine", timeout=500),
     "r": lambda args: blockchain.resolve_conflicts(),
     "chain": lambda args: print(
         f"Chain: {[block.to_dict() if isinstance(block, Block) else block for block in blockchain.chain]}"),
